@@ -1,2 +1,2 @@
-obj/*
-lib/*
+# Ignore compiled library
+libNokiaDisplay.a

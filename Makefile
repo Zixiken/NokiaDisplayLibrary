@@ -4,7 +4,7 @@ AR := ${toolchainBin}/avr-ar
 AS := ${toolchainBin}/avr-as
 CC := ${toolchainBin}/avr-gcc
 CXX := ${toolchainBin}/avr-g++
-CFLAGS := -I include
+CFLAGS := -I include -mmcu=atmega2560
 
 objs := $(patsubst src/%.c, obj/%.o, $(wildcard src/*.c))
 mainHDeps := main
@@ -15,7 +15,7 @@ libNokiaDisplay.a : ${objs}
 ${objs} : obj/%.o : src/%.c
 	${CC} -c ${CFLAGS} $< -o $@
 
-$(${mainHDeps}:%=obj/%.o) : include/main.h
+$(patsubst %, obj/%.o, ${mainHDeps}) : include/main.h
 
 .PHONY : clean
 

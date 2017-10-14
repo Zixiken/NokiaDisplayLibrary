@@ -1,0 +1,3 @@
+# Keep obj directory in repo, but empty
+*
+!.gitignore

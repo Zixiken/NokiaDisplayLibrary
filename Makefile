@@ -16,7 +16,7 @@ ${libname} : ${objs}
 ${objs} : obj/%.o : src/%.c
 	${CC} -c ${CFLAGS} $< -o $@
 
-$(patsubst %, obj/%.o, ${mainHDeps}) : include/main.h
+$(patsubst %, obj/%.o, ${nokiaDisplayHDeps}) : include/libnokiadisplay.h
 
 .PHONY : clean
 

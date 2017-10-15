@@ -1,15 +1,16 @@
 # Set the variable below to your avr toolchain's bin directory
-toolchainBin := 
-AR := ${toolchainBin}/avr-ar
-AS := ${toolchainBin}/avr-as
+toolchainBin :=
+AR := ${toolchainBin}/avr-gcc-ar
 CC := ${toolchainBin}/avr-gcc
-CXX := ${toolchainBin}/avr-g++
-CFLAGS := -I include -mmcu=atmega2560
 
+CFLAGS := -I include -mmcu=atmega2560 -DF_CPU=16000000 -Os -Wall -Werror -flto \
+	-fno-fat-lto-objects -ffunction-sections -fdata-sections
+
+libname := libnokiadisplay.a
 objs := $(patsubst src/%.c, obj/%.o, $(wildcard src/*.c))
 mainHDeps := main
 
-libNokiaDisplay.a : ${objs}
+${libname} : ${objs}
 	${AR} rcs $@ ${objs}
 
 ${objs} : obj/%.o : src/%.c
@@ -20,4 +21,4 @@ $(patsubst %, obj/%.o, ${mainHDeps}) : include/main.h
 .PHONY : clean
 
 clean :
-	rm -rf ${objs} libNokiaDisplay.a
+	rm -rf ${objs} ${libname}

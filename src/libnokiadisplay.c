@@ -16,7 +16,6 @@
 
 volatile uint8_t * resP, * enableP, * dataP, * clockP, * selP;
 uint8_t resM, enableM, dataM, clockM, selM, initialized = 0, powerMode = 4;
-
 uint8_t buffer[BUFFER_SIZE];
 
 /*
@@ -47,6 +46,14 @@ void send(uint8_t byte, uint8_t dc) {
 		*clockP |= clockM;
 		*clockP &= ~clockM;
 	}
+}
+
+/*
+ * Helper function to send new X/Y coords to the controller
+ */
+static inline void setCoordinates(uint8_t x, uint8_t y) {
+	send(CMD_X | x, 0);
+	send(CMD_Y | y, 0);
 }
 
 int initController(volatile uint8_t * resPort, uint8_t resBit,
@@ -159,8 +166,7 @@ int drawPixel(uint8_t x, uint8_t y, uint8_t state) {
 	else *byte &= ~mask;
 
 	*enableP &= ~enableM;
-	send(CMD_X | x, 0);
-	send(CMD_Y | realY, 0);
+	setCoordinates(x, realY);
 	send(*byte, 1);
 	*enableP |= enableM;
 

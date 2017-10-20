@@ -79,6 +79,20 @@ int setDisplayMode(uint8_t mode);
  */
 int setPowerMode(uint8_t mode);
 
+/*
+ * Clear the display and internal buffer.
+ *
+ * Returns false if the controller is not initialized, true otherwise.
+ */
+int clear();
+
+/*
+ * Draw a pixel to the specified x/y location. If state is true, the pixel is
+ * turned on, and vice versa. The origin point is the top-left corner.
+ *
+ * Returns false if the controller is not initialized,
+ * or x or y are out of range, true otherwise.
+ */
 int drawPixel(uint8_t x, uint8_t y, uint8_t state);
 
 void love(void);

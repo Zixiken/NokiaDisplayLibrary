@@ -1,20 +1,28 @@
 #include "libnokiadisplay.h"
 #include <util/delay.h>
 
-#define COMMAND_NORMAL 0x20
-#define COMMAND_EXTENDED 0x21
-#define COMMAND_VOP 0x80
-#define COMMAND_TC 0x04
-#define COMMAND_BIAS 0x10
-#define COMMAND_DISPLAY_MODE 0x08
+#define CMD_NORMAL 0x20
+#define CMD_EXTENDED 0x21
+#define CMD_VOP 0x80
+#define CMD_TC 0x04
+#define CMD_BIAS 0x10
+#define CMD_DISPLAY_MODE 0x08
+#define CMD_Y 0x40
+#define CMD_X 0x80
+
+#define LCD_WIDTH 84
+#define LCD_HEIGHT 48
+#define BUFFER_SIZE 504
 
 volatile uint8_t * resP, * enableP, * dataP, * clockP, * selP;
 uint8_t resM, enableM, dataM, clockM, selM, initialized = 0, powerMode = 4;
 
+uint8_t buffer[BUFFER_SIZE];
+
 /*
  * Helper function to turn a bit on or off.
  */
-inline void writeBit(volatile uint8_t * addr, uint8_t mask, uint8_t state) {
+static inline void writeBit(volatile uint8_t * addr, uint8_t mask, uint8_t state) {
 	if(state) *addr |= mask;
 	else *addr &= ~mask;
 }
@@ -76,11 +84,11 @@ int setExtendedRegisters(uint8_t bias, uint8_t vop, uint8_t tc) {
 	if(!initialized || bias > 7 || vop > 0x7f || tc > 3) return 0;
 
 	*enableP  &= ~enableM;
-	send(COMMAND_EXTENDED | powerMode, 0);
-	send(COMMAND_VOP | vop, 0);
-	send(COMMAND_BIAS | bias, 0);
-	send(COMMAND_TC | tc, 0);
-	send(COMMAND_NORMAL | powerMode, 0);
+	send(CMD_EXTENDED | powerMode, 0);
+	send(CMD_VOP | vop, 0);
+	send(CMD_BIAS | bias, 0);
+	send(CMD_TC | tc, 0);
+	send(CMD_NORMAL | powerMode, 0);
 	*enableP |= enableM;
 
 	return 1;
@@ -90,10 +98,10 @@ int defaultSetExtendedRegisters() {
 	if(!initialized) return 0;
 
 	*enableP  &= ~enableM;
-	send(COMMAND_EXTENDED | powerMode, 0);
-	send(COMMAND_VOP | 0x7f, 0);
-	send(COMMAND_BIAS | 4, 0);
-	send(COMMAND_NORMAL | powerMode, 0);
+	send(CMD_EXTENDED | powerMode, 0);
+	send(CMD_VOP | 0x7f, 0);
+	send(CMD_BIAS | 4, 0);
+	send(CMD_NORMAL | powerMode, 0);
 	*enableP |= enableM;
 
 	return 1;
@@ -108,7 +116,7 @@ int setDisplayMode(uint8_t mode) {
 		case DISPLAY_MODE_NORMAL:
 		case DISPLAY_MODE_INVERSE:
 			*enableP  &= ~enableM;
-			send(COMMAND_DISPLAY_MODE | mode, 0);
+			send(CMD_DISPLAY_MODE | mode, 0);
 			*enableP |= enableM;
 			return 1;
 		default:
@@ -122,14 +130,41 @@ int setPowerMode(uint8_t mode) {
 	if(mode) powerMode = 4;
 	else powerMode = 0;
 	*enableP  &= ~enableM;
-	send(COMMAND_NORMAL | powerMode, 0);
+	send(CMD_NORMAL | powerMode, 0);
+	*enableP |= enableM;
+
+	return 1;
+}
+
+int clear() {
+	if(!initialized) return 0;
+
+	uint16_t i;
+	*enableP &= ~enableM;
+	for(i = 0; i < BUFFER_SIZE; i++) {
+		buffer[i] = 0;
+		send(buffer[i], 1);
+	}
 	*enableP |= enableM;
 
 	return 1;
 }
 
 int drawPixel(uint8_t x, uint8_t y, uint8_t state) {
-	return 0;
+	if(!initialized || x >= LCD_WIDTH || y >= LCD_HEIGHT) return 0;
+
+	uint8_t realY = y>>3, mask = 1<<(y&7);
+	uint8_t * byte = buffer + realY*LCD_WIDTH + x;
+	if(state) *byte |= mask;
+	else *byte &= ~mask;
+
+	*enableP &= ~enableM;
+	send(CMD_X | x, 0);
+	send(CMD_Y | realY, 0);
+	send(*byte, 1);
+	*enableP |= enableM;
+
+	return 1;
 }
 
 void love(void) {

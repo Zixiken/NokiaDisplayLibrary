@@ -12,10 +12,12 @@
 
 #define LCD_WIDTH 84
 #define LCD_HEIGHT 48
+#define Y_HEIGHT 6
 #define BUFFER_SIZE 504
 
 volatile uint8_t * resP, * enableP, * dataP, * clockP, * selP;
-uint8_t resM, enableM, dataM, clockM, selM, initialized = 0, powerMode = 4;
+uint8_t resM, enableM, dataM, clockM, selM;
+uint8_t initialized = 0, powerMode = 4, x = 0, y = 0, vertical = 0;
 uint8_t buffer[BUFFER_SIZE];
 
 /*
@@ -24,6 +26,20 @@ uint8_t buffer[BUFFER_SIZE];
 static inline void writeBit(volatile uint8_t * addr, uint8_t mask, uint8_t state) {
 	if(state) *addr |= mask;
 	else *addr &= ~mask;
+}
+
+/*
+ * Helper function for keeping track of the current coordinates.
+ * Coordinates are incremented based on the current addressing mode.
+ */
+static inline void incrementCoordinates() {
+	if(vertical && ++y == Y_HEIGHT) {
+		y = 0;
+		if(++x == LCD_WIDTH) x = 0;
+	} else if(!vertical && ++x == LCD_WIDTH) {
+		x = 0;
+		if(++y == Y_HEIGHT) y = 0;
+	}
 }
 
 /*
@@ -49,11 +65,17 @@ void send(uint8_t byte, uint8_t dc) {
 }
 
 /*
- * Helper function to send new X/Y coords to the controller
+ * Helper function to send new X/Y coords to the controller if necessary
  */
-static inline void setCoordinates(uint8_t x, uint8_t y) {
-	send(CMD_X | x, 0);
-	send(CMD_Y | y, 0);
+static inline void setCoordinates(uint8_t newX, uint8_t newY) {
+	if(x != newX) {
+		x = newX;
+		send(CMD_X | x, 0);
+	}
+	if(y != newY) {
+		y = newY;
+		send(CMD_Y | y, 0);
+	}
 }
 
 int initController(volatile uint8_t * resPort, uint8_t resBit,
@@ -91,11 +113,11 @@ int setExtendedRegisters(uint8_t bias, uint8_t vop, uint8_t tc) {
 	if(!initialized || bias > 7 || vop > 0x7f || tc > 3) return 0;
 
 	*enableP  &= ~enableM;
-	send(CMD_EXTENDED | powerMode, 0);
+	send(CMD_EXTENDED | powerMode | vertical, 0);
 	send(CMD_VOP | vop, 0);
 	send(CMD_BIAS | bias, 0);
 	send(CMD_TC | tc, 0);
-	send(CMD_NORMAL | powerMode, 0);
+	send(CMD_NORMAL | powerMode | vertical, 0);
 	*enableP |= enableM;
 
 	return 1;
@@ -105,10 +127,10 @@ int defaultSetExtendedRegisters() {
 	if(!initialized) return 0;
 
 	*enableP  &= ~enableM;
-	send(CMD_EXTENDED | powerMode, 0);
+	send(CMD_EXTENDED | powerMode | vertical, 0);
 	send(CMD_VOP | 0x7f, 0);
 	send(CMD_BIAS | 4, 0);
-	send(CMD_NORMAL | powerMode, 0);
+	send(CMD_NORMAL | powerMode | vertical, 0);
 	*enableP |= enableM;
 
 	return 1;
@@ -137,7 +159,7 @@ int setPowerMode(uint8_t mode) {
 	if(mode) powerMode = 4;
 	else powerMode = 0;
 	*enableP  &= ~enableM;
-	send(CMD_NORMAL | powerMode, 0);
+	send(CMD_NORMAL | powerMode | vertical, 0);
 	*enableP |= enableM;
 
 	return 1;
@@ -150,7 +172,7 @@ int clear() {
 	*enableP &= ~enableM;
 	for(i = 0; i < BUFFER_SIZE; i++) {
 		buffer[i] = 0;
-		send(buffer[i], 1);
+		send(0, 1);
 	}
 	*enableP |= enableM;
 
@@ -169,6 +191,7 @@ int drawPixel(uint8_t x, uint8_t y, uint8_t state) {
 	setCoordinates(x, realY);
 	send(*byte, 1);
 	*enableP |= enableM;
+	incrementCoordinates();
 
 	return 1;
 }

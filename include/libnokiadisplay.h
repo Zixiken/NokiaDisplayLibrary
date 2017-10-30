@@ -107,7 +107,7 @@ int drawPixel(uint8_t x, uint8_t y, uint8_t state);
  * of a column are ignored, and if false, indicate the bits are the start of
  * the next column.
  *
- * Example: writing a 2x5 block with padding on would require 5 bytes.
+ * Example: writing a 5x2 block with padding on would require 5 bytes.
  *   [11xxxxxx, 22xxxxxx, 33xxxxxx, 44xxxxxx, 55xxxxxx]
  * But the same size with padding off would use 2 bytes.
  *   [11223344, 55xxxxxx]

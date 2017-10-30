@@ -95,5 +95,30 @@ int clear();
  */
 int drawPixel(uint8_t x, uint8_t y, uint8_t state);
 
+/*
+ * Draw a region of the specified width and height to the screen. The passed x
+ * and y coordinates are the location of the top-left corner of the region.
+ * If opaque is true, bits that are off will clear the corresponding buffer
+ * bits. If false, bits that are off have no effect.
+ *
+ * This function reads data in as columns, so the first byte corresponds to
+ * coordinates (x,y) through (x,y+7), etc. When using an uneven column length, the
+ * padding parameter will, if true, indicate that extra bits in the last byte
+ * of a column are ignored, and if false, indicate the bits are the start of
+ * the next column.
+ *
+ * Example: writing a 2x5 block with padding on would require 5 bytes.
+ *   [11xxxxxx, 22xxxxxx, 33xxxxxx, 44xxxxxx, 55xxxxxx]
+ * But the same size with padding off would use 2 bytes.
+ *   [11223344, 55xxxxxx]
+ *
+ * Ultimately this function has better performance than its row counterpart.
+ *
+ * Returns false if the controller is not initialized, x or y are out of range,
+ * or the height or width hand off the edge of the screen, true otherwise.
+ */
+int drawRegionColumns(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
+		uint8_t * buf, uint8_t padding, uint8_t opaque);
+
 void love(void);
 #endif

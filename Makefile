@@ -8,7 +8,7 @@ CFLAGS := -I include -mmcu=atmega2560 -DF_CPU=16000000 -Os -Wall -Werror -flto \
 
 libname := libnokiadisplay.a
 objs := $(patsubst src/%.c, obj/%.o, $(wildcard src/*.c))
-nokiaDisplayHDeps := libnokiadisplay
+nokiaDisplayHDeps := libnokiadisplay characters
 
 ${libname} : ${objs}
 	${AR} rcs $@ ${objs}

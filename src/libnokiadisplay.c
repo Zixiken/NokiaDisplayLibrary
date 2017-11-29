@@ -15,10 +15,10 @@
 #define Y_HEIGHT 6
 #define BUFFER_SIZE 504
 
-volatile uint8_t * resP, * enableP, * dataP, * clockP, * selP;
-uint8_t resM, enableM, dataM, clockM, selM;
-uint8_t initialized = 0, powerMode = 4, x = 0, y = 0, vertical = 0;
-uint8_t buffer[BUFFER_SIZE];
+static volatile uint8_t * resP, * enableP, * dataP, * clockP, * selP;
+static uint8_t resM, enableM, dataM, clockM, selM;
+static uint8_t initialized = 0, powerMode = 4, x = 0, y = 0, vertical = 0;
+static uint8_t buffer[BUFFER_SIZE];
 
 /*
  * Helper function to turn a bit on or off.
@@ -52,7 +52,7 @@ static inline void incrementCoordinates() {
  * enough between clock edges. The PCD8544 requires a minimum of 100ns pulse
  * width, minimum of 250ns clock cycle.
  */
-void send(uint8_t byte, uint8_t dc) {
+static void send(uint8_t byte, uint8_t dc) {
     uint8_t mask;
 
     writeBit(selP, selM, dc);
@@ -197,7 +197,7 @@ int drawPixel(uint8_t x, uint8_t y, uint8_t state) {
 }
 
 int drawRegionColumns(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
-        uint8_t * data, uint8_t padding, uint8_t opaque) {
+        const uint8_t * data, uint8_t padding, uint8_t opaque) {
     uint8_t bufBits, dataBits, bufOffset, curWriteByte, * curBufByte;
     uint8_t curY, realY, remaining, dataOffset = 0, realYSave = y >> 3;
     if(!initialized || x >= LCD_WIDTH || y >= LCD_HEIGHT ||
@@ -232,7 +232,7 @@ int drawRegionColumns(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
             curWriteByte = (curWriteByte << bufOffset) &
                 (0xFF >> (8-bufBits-bufOffset));
 
-            curBufByte = buffer + realY*LCD_HEIGHT + x;
+            curBufByte = buffer + realY*LCD_WIDTH + x;
             // If opaque, we want to write directly to the buffer but need to
             // make sure unused bits around the used bits aren't overwritten.
             if(opaque) *curBufByte = curWriteByte |

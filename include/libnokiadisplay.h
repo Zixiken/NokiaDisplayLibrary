@@ -216,5 +216,8 @@ int drawPixel(uint8_t x, uint8_t y, uint8_t state);
 int drawRegionColumns(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
         const uint8_t * buf, uint8_t padding, uint8_t opaque);
 
+int drawRegionRows(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
+        const uint8_t * buf, uint8_t padding, uint8_t opaque);
+
 void love(void);
 #endif

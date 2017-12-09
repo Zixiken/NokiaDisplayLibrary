@@ -199,9 +199,12 @@ int drawPixel(uint8_t x, uint8_t y, uint8_t state) {
 int drawRegionColumns(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
         const uint8_t * data, uint8_t padding, uint8_t opaque) {
     uint8_t bufBits, dataBits, bufOffset, curWriteByte, * curBufByte;
-    uint8_t curY, realY, remaining, dataOffset = 0, realYSave = y >> 3;
+    uint8_t curY, curRealY, remaining,
+            dataOffset = 0, realY = y >> 3, maxX = x + width;
+
     if(!initialized || x >= LCD_WIDTH || y >= LCD_HEIGHT ||
-            x + width > LCD_WIDTH || y + height > LCD_HEIGHT) return 0;
+            maxX > LCD_WIDTH || y + height > LCD_HEIGHT) return 0;
+    if(width == 0 || height == 0) return 1;
 
     *enableP &= ~enableM;
     if(!vertical) {
@@ -209,13 +212,12 @@ int drawRegionColumns(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
         vertical = 2;
     }
 
-    width = x + width;
-    while(x < width) {
+    while(x < maxX) {
         // Setup for current column
         remaining = height;
         curY = y;
-        realY = realYSave;
-        setCoordinates(x, realY);
+        curRealY = realY;
+        setCoordinates(x, curRealY);
 
         // Each iteration writes a byte to the buffer and sends it
         while(remaining != 0) {
@@ -230,13 +232,13 @@ int drawRegionColumns(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
             dataBits = 8 - dataOffset;
             if(bufBits > dataBits) curWriteByte |= *(data + 1) << dataBits;
             curWriteByte = (curWriteByte << bufOffset) &
-                (0xFF >> (8-bufBits-bufOffset));
+                    (0xFF >> (8-bufBits-bufOffset));
 
-            curBufByte = buffer + realY*LCD_WIDTH + x;
+            curBufByte = buffer + curRealY*LCD_WIDTH + x;
             // If opaque, we want to write directly to the buffer but need to
             // make sure unused bits around the used bits aren't overwritten.
             if(opaque) *curBufByte = curWriteByte |
-                (~(0xFF >> (8-bufBits) << bufOffset) & *curBufByte);
+                    (~(0xFF >> (8-bufBits) << bufOffset) & *curBufByte);
             // If not, the unused bits are already cleared and won't overwrite
             // when or'd with the buffer.
             else *curBufByte |= curWriteByte;
@@ -249,7 +251,7 @@ int drawRegionColumns(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
             dataOffset = (dataOffset+bufBits) & 7;
             remaining -= bufBits;
             curY += bufBits;
-            realY++;
+            curRealY++;
         }
 
         // If padding is on and there are unused bits in the
@@ -260,6 +262,77 @@ int drawRegionColumns(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
         }
 
         x++;
+    }
+    *enableP |= enableM;
+
+    return 1;
+}
+
+int drawRegionRows(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
+        const uint8_t * data, uint8_t padding, uint8_t opaque) {
+    uint8_t bufBits, dataBits, bufOffset, curWriteByte, * curBufByte;
+    uint8_t curX, remaining, rowOffset, dataOffset = 0, realY = y >> 3,
+            maxX = x + width, maxY = y + height, realMaxY = (maxY - 1) >> 3;
+    const uint8_t * curData;
+    if(!initialized || x >= LCD_WIDTH || y >= LCD_HEIGHT ||
+            maxX > LCD_WIDTH || maxY > LCD_HEIGHT) return 0;
+    if(width == 0 || height == 0) return 1;
+
+    *enableP &= ~enableM;
+    if(vertical) {
+        send(CMD_NORMAL | powerMode, 0);
+        vertical = 0;
+    }
+
+    // The is evaluated as either the number of pixels or number of bytes
+    if(padding) height = ((height - 1) >> 3) + 1;
+    while(realY <= realMaxY) {
+        curData = data;
+        setCoordinates(x, realY);
+        if(!padding) rowOffset = dataOffset;
+
+        bufOffset = y & 7;
+        bufBits = 8 - bufOffset;
+        remaining = maxY - y;
+        // Ensure we don't try to write extra bits below the region
+        if(bufBits > remaining) bufBits = remaining;
+
+        for(curX = x; curX < maxX; curX++) {
+            // This gets the correct number of bits from the input data and
+            // moves it into the correct position in relation to the buffer
+            curWriteByte = *curData >> dataOffset;
+            dataBits = 8 - dataOffset;
+            if(bufBits > dataBits) curWriteByte |= *(curData + 1) << dataBits;
+            curWriteByte = (curWriteByte << bufOffset) &
+                    (0xFF >> (8-bufBits-bufOffset));
+
+            curBufByte = buffer + realY*LCD_WIDTH + curX;
+            // If opaque, we want to write directly to the buffer but need to
+            // make sure unused bits around the used bits aren't overwritten.
+            if(opaque) *curBufByte = curWriteByte |
+                    (~(0xFF >> (8-bufBits) << bufOffset) & *curBufByte);
+            // If not, the unused bits are already cleared and won't overwrite
+            // when or'd with the buffer.
+            else *curBufByte |= curWriteByte;
+
+            send(*curBufByte, 1);
+            incrementCoordinates();
+
+            // Update the current row's data pointer
+            if(padding) curData += height;
+            else {
+                dataOffset += height;
+                curData += dataOffset >> 3;
+                dataOffset &= 7;
+            }
+        }
+
+        // Record keeping; next iteration uses these shifted values
+        if(!padding) dataOffset = rowOffset;
+        if(bufBits >= (8 - dataOffset)) data++;
+        dataOffset = (dataOffset+bufBits) & 7;
+        y += bufBits;
+        realY++;
     }
     *enableP |= enableM;
 

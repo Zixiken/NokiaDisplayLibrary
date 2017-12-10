@@ -10,8 +10,6 @@
 #define CMD_Y 0x40
 #define CMD_X 0x80
 
-#define LCD_WIDTH 84
-#define LCD_HEIGHT 48
 #define Y_HEIGHT 6
 #define BUFFER_SIZE 504
 

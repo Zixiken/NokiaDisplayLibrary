@@ -95,3 +95,37 @@ const uint8_t L_BRACE[] = {0x00, 0x08, 0x36, 0x41, 0x00, 0};
 const uint8_t PIPE[] = {0x00, 0x00, 0x7F, 0x00, 0x00, 0};
 const uint8_t R_BRACE[] = {0x00, 0x41, 0x36, 0x08, 0x00, 0};
 const uint8_t TILDE[] = {0x04, 0x04, 0x08, 0x08, 0x04, 0};
+
+// An array of the above characters, in ASCII order. By subtracting away the
+// non-printable character range, this can be used to draw strings.
+const uint8_t * charEncoding[] = {
+    SPACE, BANG, QUOTE, NUMBER, DOLLAR, PERCENT, AMP, APOSTROPHE, L_PAREN,
+    R_PAREN, ASTERISK, PLUS, COMMA, HYPHEN, PERIOD, SLASH, ZERO, ONE, TWO,
+    THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, COLON, SEMICOLON, LESS_THAN,
+    EQUALS, GREATER_THAN, QUESTION, AT, A_UP, B_UP, C_UP, D_UP, E_UP, F_UP,
+    G_UP, H_UP, I_UP, J_UP, K_UP, L_UP, M_UP, N_UP, O_UP, P_UP, Q_UP, R_UP,
+    S_UP, T_UP, U_UP, V_UP, W_UP, X_UP, Y_UP, Z_UP, L_BRACKET, BACKSLASH,
+    R_BRACKET, CARET, UNDERSCORE, GRAVE, A_LO, B_LO, C_LO, D_LO, E_LO, F_LO,
+    G_LO, H_LO, I_LO, J_LO, K_LO, L_LO, M_LO, N_LO, O_LO, P_LO, Q_LO, R_LO,
+    S_LO, T_LO, U_LO, V_LO, W_LO, X_LO, Y_LO, Z_LO, L_BRACE, PIPE, R_BRACE,
+    TILDE
+};
+
+int drawText(uint8_t x, uint8_t y, const char * str, uint8_t opaque) {
+    uint8_t curChar;
+
+    while((curChar = *str) != 0) {
+        curChar -= 0x20;
+        if(curChar <= 0x5E)
+            drawRegionRows(x, y, 6, 8, charEncoding[curChar], 1, opaque);
+        else
+            drawRegionRows(x, y, 6, 8, QUESTION, 1, opaque);
+
+	x += 6;
+        if(x == LCD_WIDTH) break;
+	++str;
+    }
+
+    return 1;
+}
+

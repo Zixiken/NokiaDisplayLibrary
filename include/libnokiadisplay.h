@@ -15,6 +15,9 @@
 
 #include <stdint.h>
 
+#define LCD_WIDTH 84
+#define LCD_HEIGHT 48
+
 #define DISPLAY_MODE_BLANK 0
 #define DISPLAY_MODE_ALL 1
 #define DISPLAY_MODE_NORMAL 4
@@ -218,6 +221,8 @@ int drawRegionColumns(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
 
 int drawRegionRows(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
         const uint8_t * buf, uint8_t padding, uint8_t opaque);
+
+int drawText(uint8_t x, uint8_t y, const char * str, uint8_t opaque);
 
 void love(void);
 #endif
